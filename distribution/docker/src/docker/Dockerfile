@@ -11,10 +11,17 @@
 # Set gid=0 and make group perms==owner perms
 ################################################################################
 
-FROM centos:7 AS builder
+FROM centos:8 AS builder
 
 ENV PATH /usr/share/elasticsearch/bin:$PATH
 ENV JAVA_HOME /opt/jdk-${jdkVersion}
+
+# change centos 8's repo to http://vault.centos.org because centos is no longer maintained
+# Please refer to https://yegorshytikov.medium.com/error-failed-to-download-metadata-for-repo-appstream-cannot-prepare-internal-mirrorlist-no-959768e5f8e5 for more details
+RUN cd /etc/yum.repos.d/ \
+    && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
+    && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
+    && yum update -y
 
 RUN for iter in {1..10}; do curl -L -s -S ${jdkUrl} | tar -C /opt -zx && \
     exit_code=0 && break || exit_code=\$? && echo "download error: retry $iter in 10s" && sleep 10; done; \
@@ -47,10 +54,17 @@ COPY config/elasticsearch.yml config/log4j2.properties config/
 # Add entrypoint
 ################################################################################
 
-FROM centos:7
+FROM centos:8
 
 ENV ELASTIC_CONTAINER true
 ENV JAVA_HOME /opt/jdk-${jdkVersion}
+
+# change centos 8's repo to http://vault.centos.org because centos is no longer maintained
+# Please refer to https://yegorshytikov.medium.com/error-failed-to-download-metadata-for-repo-appstream-cannot-prepare-internal-mirrorlist-no-959768e5f8e5 for more details
+RUN cd /etc/yum.repos.d/ \
+    && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
+    && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
+    && yum update -y
 
 COPY --from=builder /opt/jdk-${jdkVersion} /opt/jdk-${jdkVersion}
 
